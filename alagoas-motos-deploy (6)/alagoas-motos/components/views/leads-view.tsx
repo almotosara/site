@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useRef } from 'react'
 import type { Lead } from '@/lib/types'
 import { STATUS_COLORS, ORIGEM_COLORS, fmtDate, STATUS_OPTIONS } from '@/lib/constants'
 import { useToast } from '@/components/toast'
@@ -48,6 +48,8 @@ export function LeadsView({ leads, onEdit, onDelete, onConvert, onNew }: LeadsVi
   const [hideCnpj, setHideCnpj] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const [copiedBtn, setCopiedBtn] = useState<string | null>(null)
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(20)
   const toast = useToast()
 
   const modelos = useMemo(() => {
@@ -98,6 +100,21 @@ export function LeadsView({ leads, onEdit, onDelete, onConvert, onNew }: LeadsVi
     if (ate && l.data && l.data > ate) return false
     return true
   }), [leads, q, origem, status, de, ate, modelo, hideCnpj])
+
+  // Reset para a primeira página sempre que os filtros mudarem
+  const filterKey = `${q}|${origem}|${status}|${de}|${ate}|${modelo}|${hideCnpj}`
+  const prevFilterKey = useRef(filterKey)
+  if (prevFilterKey.current !== filterKey) {
+    prevFilterKey.current = filterKey
+    if (page !== 1) setPage(1)
+  }
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
+  const safePage = Math.min(page, totalPages)
+  const paged = useMemo(() => {
+    const start = (safePage - 1) * pageSize
+    return filtered.slice(start, start + pageSize)
+  }, [filtered, safePage, pageSize])
 
   return (
     <div className="view-enter flex flex-col gap-4">
@@ -170,7 +187,7 @@ export function LeadsView({ leads, onEdit, onDelete, onConvert, onNew }: LeadsVi
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((l) => {
+                {paged.map((l) => {
                   const sc = STATUS_COLORS[l.status]
                   const oc = ORIGEM_COLORS[l.origem]
                   const bk = `cb-${l.id}`
@@ -262,12 +279,52 @@ export function LeadsView({ leads, onEdit, onDelete, onConvert, onNew }: LeadsVi
             </table>
           </div>
         )}
-        {/* Footer count */}
-        <div className="px-3.5 py-2.5 text-[12px]" style={{ color: 'var(--text-muted)', borderTop: '1px solid var(--border-line-soft)' }}>
-          {filtered.length} lead(s) encontrados de {leads.length} no total.
+        {/* Footer: count + pagination */}
+        <div className="flex flex-wrap items-center justify-between gap-3 px-3.5 py-2.5 text-[12px]"
+          style={{ color: 'var(--text-muted)', borderTop: '1px solid var(--border-line-soft)' }}>
+          <span>
+            {filtered.length > 0
+              ? <>Mostrando {(safePage - 1) * pageSize + 1}–{Math.min(safePage * pageSize, filtered.length)} de {filtered.length} lead(s){filtered.length !== leads.length ? ` (${leads.length} no total)` : ''}.</>
+              : <>{filtered.length} lead(s) encontrados de {leads.length} no total.</>}
+          </span>
+          {filtered.length > 0 && (
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <select value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1) }}
+                style={{ ...INP_STYLE, padding: '5px 8px', fontSize: 12 }}>
+                {[10, 20, 50, 100].map((n) => <option key={n} value={n}>{n} / página</option>)}
+              </select>
+              <div className="flex items-center gap-1">
+                <PageBtn onClick={() => setPage(1)} disabled={safePage === 1} title="Primeira página">«</PageBtn>
+                <PageBtn onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={safePage === 1} title="Página anterior">‹</PageBtn>
+                <span className="px-2 font-semibold" style={{ color: 'var(--text-primary)' }}>{safePage} / {totalPages}</span>
+                <PageBtn onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={safePage === totalPages} title="Próxima página">›</PageBtn>
+                <PageBtn onClick={() => setPage(totalPages)} disabled={safePage === totalPages} title="Última página">»</PageBtn>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
+  )
+}
+
+function PageBtn({ children, onClick, disabled, title }: { children: React.ReactNode; onClick: () => void; disabled?: boolean; title?: string }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      className="w-7 h-7 flex items-center justify-center rounded-md text-[13px] font-bold transition-colors"
+      style={{
+        border: '1px solid var(--border-line)',
+        background: 'var(--bg-elevated)',
+        color: disabled ? 'var(--text-muted)' : 'var(--text-dim)',
+        opacity: disabled ? 0.45 : 1,
+        cursor: disabled ? 'not-allowed' : 'pointer',
+      }}
+    >
+      {children}
+    </button>
   )
 }
 
