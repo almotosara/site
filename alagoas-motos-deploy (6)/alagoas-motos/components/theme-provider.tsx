@@ -45,7 +45,14 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, [theme, mounted])
 
   const toggle = useCallback(() => {
+    const root = document.documentElement
+    root.classList.add('theme-switching')
     setTheme((t) => (t === 'dark' ? 'light' : 'dark'))
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        root.classList.remove('theme-switching')
+      })
+    })
   }, [])
 
   // Previne flash de tema errado
