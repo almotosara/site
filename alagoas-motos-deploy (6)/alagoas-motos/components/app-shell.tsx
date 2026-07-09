@@ -346,8 +346,9 @@ export function AppShell({
 
       // Persiste no Supabase
       let persistError: string | null = null
+      let inserted: Lead[] = []
       if (toCreate.length > 0) {
-        try { await bulkCreateLeads(toCreate) }
+        try { inserted = await bulkCreateLeads(toCreate) }
         catch (e) { persistError = e instanceof Error ? e.message : 'Erro ao salvar no Supabase' }
       }
       for (const u of toUpdate) {
@@ -359,16 +360,10 @@ export function AppShell({
         return
       }
 
-      // Atualiza estado local
+      // Atualiza estado local (usa os IDs reais retornados pelo Supabase)
       const now = new Date().toISOString()
-      if (toCreate.length > 0) {
-        setLeads(prev => [
-          ...toCreate.map((l, i) => ({
-            ...l, id: `mw-${Date.now()}-${i}`, user_id: USER_ID,
-            criado_em: now, atualizado_em: now,
-          })),
-          ...prev,
-        ])
+      if (inserted.length > 0) {
+        setLeads(prev => [...inserted, ...prev])
       }
       if (toUpdate.length > 0) {
         setLeads(prev => prev.map(l => {
