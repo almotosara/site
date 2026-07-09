@@ -33,15 +33,30 @@ const COPY_BTN_STYLE: React.CSSProperties = {
   transition: 'all 0.15s', lineHeight: 1.4,
 }
 
+function isCNPJ(doc?: string | null) {
+  if (!doc) return false
+  return doc.replace(/\D/g, '').length === 14
+}
+
 export function LeadsView({ leads, onEdit, onDelete, onConvert, onNew }: LeadsViewProps) {
   const [q, setQ] = useState('')
   const [origem, setOrigem] = useState('')
   const [status, setStatus] = useState('')
   const [de, setDe] = useState('')
   const [ate, setAte] = useState('')
+  const [modelo, setModelo] = useState('')
+  const [hideCnpj, setHideCnpj] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const [copiedBtn, setCopiedBtn] = useState<string | null>(null)
   const toast = useToast()
+
+  const modelos = useMemo(() => {
+    const set = new Set<string>()
+    leads.forEach((l) => { if (l.modelo) set.add(l.modelo) })
+    return Array.from(set).sort()
+  }, [leads])
+
+  const cnpjCount = useMemo(() => leads.filter((l) => isCNPJ(l.cpf)).length, [leads])
 
   const copyText = useCallback((text: string, label: string, key: string) => {
     if (!text || text === '—') return
@@ -77,10 +92,12 @@ export function LeadsView({ leads, onEdit, onDelete, onConvert, onNew }: LeadsVi
       !(l.modelo || '').toLowerCase().includes(text)) return false
     if (origem && l.origem !== origem) return false
     if (status && l.status !== status) return false
+    if (modelo && l.modelo !== modelo) return false
+    if (hideCnpj && isCNPJ(l.cpf)) return false
     if (de && l.data && l.data < de) return false
     if (ate && l.data && l.data > ate) return false
     return true
-  }), [leads, q, origem, status, de, ate])
+  }), [leads, q, origem, status, de, ate, modelo, hideCnpj])
 
   return (
     <div className="view-enter flex flex-col gap-4">
@@ -101,6 +118,29 @@ export function LeadsView({ leads, onEdit, onDelete, onConvert, onNew }: LeadsVi
           <option value="">Todos status</option>
           {STATUS_OPTIONS.map((s) => <option key={s}>{s}</option>)}
         </select>
+        {modelos.length > 0 && (
+          <select value={modelo} onChange={(e) => setModelo(e.target.value)} style={{ ...INP_STYLE, minWidth: 145 }}>
+            <option value="">Todos modelos</option>
+            {modelos.map((m) => <option key={m}>{m}</option>)}
+          </select>
+        )}
+        <button
+          onClick={() => setHideCnpj((v) => !v)}
+          title={hideCnpj ? 'Mostrar leads de CNPJ (pessoa jurídica)' : 'Ocultar leads de CNPJ (pessoa jurídica)'}
+          className="flex items-center gap-1.5 cursor-pointer"
+          style={{
+            ...INP_STYLE,
+            fontWeight: 600,
+            color: hideCnpj ? '#ff4b2b' : 'var(--text-dim)',
+            borderColor: hideCnpj ? '#ff4b2b' : 'var(--border-line)',
+            background: hideCnpj ? '#ff4b2b18' : 'var(--bg-input)',
+          }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            {hideCnpj ? <><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a18.5 18.5 0 0 1 5.06-5.94M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/><path d="M1 1l22 22"/></> : <><path d="M2 12s4-8 10-8 10 8 10 8-4 8-10 8-10-8-10-8Z"/><circle cx="12" cy="12" r="3"/></>}
+          </svg>
+          Ocultar CNPJ{cnpjCount > 0 ? ` (${cnpjCount})` : ''}
+        </button>
         <div className="flex items-center gap-1.5">
           <input type="date" value={de} onChange={(e) => setDe(e.target.value)} style={INP_STYLE} title="De" />
           <span className="text-xs" style={{ color: 'var(--text-muted)' }}>até</span>
