@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { useTheme } from './theme-provider'
 import { TSI_META, TSI_META_PESQ } from '@/lib/constants'
 
@@ -9,8 +10,10 @@ interface SettingsModalProps {
   onClose: () => void
   userName: string
   userEmail: string
+  avatarUrl?: string
   goal: number
   onGoalChange: (g: number) => void
+  onProfileChange: (name: string, avatar: string) => void
   onSignOut: () => void
 }
 
@@ -23,13 +26,29 @@ const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
   { id: 'sobre', label: 'Sobre', icon: <IconInfo /> },
 ]
 
-export function SettingsModal({ open, onClose, userName, userEmail, goal, onGoalChange, onSignOut }: SettingsModalProps) {
+export function SettingsModal({ open, onClose, userName, userEmail, avatarUrl, goal, onGoalChange, onProfileChange, onSignOut }: SettingsModalProps) {
   const [tab, setTab] = useState<Tab>('perfil')
   const [goalDraft, setGoalDraft] = useState(goal)
   const [saved, setSaved] = useState(false)
+  const [nameDraft, setNameDraft] = useState(userName)
+  const [avatarDraft, setAvatarDraft] = useState(avatarUrl || '')
+  const [profileSaved, setProfileSaved] = useState(false)
+  const [mounted, setMounted] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const { theme, toggle } = useTheme()
 
-  if (!open) return null
+  // Só cria o portal depois de montar no cliente (evita erro de SSR)
+  useEffect(() => setMounted(true), [])
+
+  // Sincroniza os rascunhos sempre que o modal é reaberto
+  useEffect(() => {
+    if (open) {
+      setNameDraft(userName)
+      setAvatarDraft(avatarUrl || '')
+    }
+  }, [open, userName, avatarUrl])
+
+  if (!open || !mounted) return null
 
   function saveGoal() {
     onGoalChange(Math.max(1, goalDraft))
@@ -37,7 +56,23 @@ export function SettingsModal({ open, onClose, userName, userEmail, goal, onGoal
     setTimeout(() => setSaved(false), 1600)
   }
 
-  return (
+  function saveProfile() {
+    onProfileChange(nameDraft.trim(), avatarDraft)
+    setProfileSaved(true)
+    setTimeout(() => setProfileSaved(false), 1600)
+  }
+
+  function handlePhotoPick(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    if (!file.type.startsWith('image/')) return
+    const reader = new FileReader()
+    reader.onload = () => setAvatarDraft(String(reader.result || ''))
+    reader.readAsDataURL(file)
+  }
+
+  const modal = (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center overflow-auto"
       style={{ background: 'var(--overlay-bg)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', padding: '4vh 16px' }}
@@ -82,27 +117,76 @@ export function SettingsModal({ open, onClose, userName, userEmail, goal, onGoal
             {tab === 'perfil' && (
               <div className="flex flex-col gap-5">
                 <div className="flex items-center gap-3.5">
-                  <div className="rounded-full flex items-center justify-center font-bold text-white"
-                    style={{ width: 52, height: 52, fontSize: 20, background: 'linear-gradient(135deg, #ff4b2b, #d63a1e)' }}>
-                    {userName.charAt(0).toUpperCase()}
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="relative rounded-full flex items-center justify-center font-bold text-white cursor-pointer group"
+                    style={{
+                      width: 60, height: 60, fontSize: 22, flexShrink: 0,
+                      background: avatarDraft ? undefined : 'linear-gradient(135deg, #ff4b2b, #d63a1e)',
+                      backgroundImage: avatarDraft ? `url(${avatarDraft})` : undefined,
+                      backgroundSize: 'cover', backgroundPosition: 'center',
+                      border: '1px solid var(--border-line-soft)',
+                    }}
+                    title="Alterar foto"
+                  >
+                    {!avatarDraft && nameDraft.charAt(0).toUpperCase()}
+                    <span
+                      className="absolute inset-0 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      style={{ background: 'rgba(0,0,0,0.45)' }}
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2Z"/><circle cx="12" cy="13" r="4"/>
+                      </svg>
+                    </span>
+                  </button>
                   <div>
-                    <div className="font-semibold text-[15px]" style={{ color: 'var(--text-primary)' }}>{userName}</div>
+                    <div className="font-semibold text-[15px]" style={{ color: 'var(--text-primary)' }}>{nameDraft || userName}</div>
                     <div className="text-[12.5px]" style={{ color: 'var(--text-muted)' }}>{userEmail}</div>
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="text-[11.5px] font-semibold cursor-pointer mt-1"
+                      style={{ color: '#ff4b2b' }}
+                    >
+                      Alterar foto
+                    </button>
                   </div>
+                  <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoPick} />
                 </div>
 
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[11px] uppercase tracking-widest font-semibold" style={{ color: 'var(--text-muted)' }}>Nome</label>
-                  <input value={userName} disabled className="settings-inp" style={{ opacity: 0.6, cursor: 'not-allowed' }} />
+                  <input
+                    value={nameDraft}
+                    onChange={(e) => setNameDraft(e.target.value)}
+                    placeholder={userName}
+                    className="settings-inp"
+                  />
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[11px] uppercase tracking-widest font-semibold" style={{ color: 'var(--text-muted)' }}>E-mail</label>
                   <input value={userEmail} disabled className="settings-inp" style={{ opacity: 0.6, cursor: 'not-allowed' }} />
                 </div>
                 <p className="text-[11.5px]" style={{ color: 'var(--text-muted)' }}>
-                  Nome e e-mail são definidos pela conta de acesso e não podem ser editados por aqui.
+                  O e-mail é definido pela conta de acesso e não pode ser editado por aqui.
                 </p>
+
+                <div className="flex items-center gap-3">
+                  <button onClick={saveProfile} className="settings-btn-primary">
+                    {profileSaved ? 'Perfil salvo ✓' : 'Salvar perfil'}
+                  </button>
+                  {(avatarDraft || nameDraft !== userName) && (
+                    <button
+                      type="button"
+                      onClick={() => { setNameDraft(userName); setAvatarDraft(avatarUrl || '') }}
+                      className="text-[12.5px] font-semibold cursor-pointer"
+                      style={{ color: 'var(--text-muted)' }}
+                    >
+                      Descartar alterações
+                    </button>
+                  )}
+                </div>
 
                 <div className="pt-3" style={{ borderTop: '1px solid var(--border-line-soft)' }}>
                   <button onClick={onSignOut} className="flex items-center gap-1.5 text-[13.5px] font-semibold cursor-pointer"
@@ -226,6 +310,10 @@ export function SettingsModal({ open, onClose, userName, userEmail, goal, onGoal
       `}</style>
     </div>
   )
+
+  // Renderiza em um portal (document.body) para o modal nunca ficar
+  // preso/cortado dentro da sidebar (bug de clipping por overflow do <aside>).
+  return createPortal(modal, document.body)
 }
 
 function IconUser() {

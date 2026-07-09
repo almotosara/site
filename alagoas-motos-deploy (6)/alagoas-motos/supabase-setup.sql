@@ -52,8 +52,15 @@ CREATE TABLE IF NOT EXISTS user_settings (
   user_id          UUID PRIMARY KEY,
   goal             INTEGER NOT NULL DEFAULT 150,
   tsi_updated_at   TEXT,
+  display_name     TEXT,
+  avatar_url       TEXT,
   atualizado_em    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- 4.1 Se a tabela user_settings já existia antes (instalação antiga),
+--     rode este bloco no SQL Editor do Supabase para adicionar as colunas novas:
+-- ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS display_name TEXT;
+-- ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS avatar_url TEXT;
 
 -- 5. Row Level Security (RLS)
 ALTER TABLE leads ENABLE ROW LEVEL SECURITY;

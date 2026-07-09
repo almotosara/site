@@ -20,9 +20,11 @@ async function loadData() {
       fieis: fieis || [],
       goal: settings?.goal ?? 150,
       tsiUpdatedAt: settings?.tsi_updated_at ?? null,
+      displayName: settings?.display_name ?? null,
+      avatarUrl: settings?.avatar_url ?? null,
     }
   } catch {
-    return { leads: [], tsiData: [], fieis: [], goal: 150, tsiUpdatedAt: null }
+    return { leads: [], tsiData: [], fieis: [], goal: 150, tsiUpdatedAt: null, displayName: null, avatarUrl: null }
   }
 }
 
@@ -30,7 +32,7 @@ export default async function Page() {
   const session = await getSession()
   if (!session) redirect('/auth/login')
 
-  const { leads, tsiData, fieis, goal, tsiUpdatedAt } = await loadData()
+  const { leads, tsiData, fieis, goal, tsiUpdatedAt, displayName, avatarUrl } = await loadData()
 
   return (
     <ThemeProvider>
@@ -43,6 +45,8 @@ export default async function Page() {
           initialFieis={fieis}
           initialGoal={goal}
           initialTsiUpdatedAt={tsiUpdatedAt}
+          initialDisplayName={displayName}
+          initialAvatarUrl={avatarUrl}
         />
       </ToastProvider>
     </ThemeProvider>

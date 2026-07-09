@@ -14,7 +14,7 @@ import { FieisView } from './views/fieis-view'
 import { useToast } from './toast'
 import {
   createLead, updateLead, deleteLead,
-  replaceTsiData, upsertSettings,
+  replaceTsiData, upsertSettings, updateProfile,
   createClienteFiel, updateClienteFiel, deleteClienteFiel,
   bulkCreateLeads,
 } from '@/app/actions'
@@ -87,10 +87,13 @@ interface AppShellProps {
   initialFieis: ClienteFiel[]
   initialGoal: number
   initialTsiUpdatedAt: string | null
+  initialDisplayName?: string | null
+  initialAvatarUrl?: string | null
 }
 
 export function AppShell({
   userName, userEmail, initialLeads, initialTsi, initialFieis, initialGoal, initialTsiUpdatedAt,
+  initialDisplayName, initialAvatarUrl,
 }: AppShellProps) {
   const [view, setView] = useState<View>('dash')
   const [leads, setLeads] = useState<Lead[]>(initialLeads)
@@ -98,6 +101,8 @@ export function AppShell({
   const [fieis, setFieis] = useState<ClienteFiel[]>(initialFieis)
   const [goal, setGoalState] = useState(initialGoal)
   const [tsiUpdatedAt, setTsiUpdatedAt] = useState(initialTsiUpdatedAt)
+  const [displayName, setDisplayName] = useState(initialDisplayName || '')
+  const [avatarUrl, setAvatarUrl] = useState(initialAvatarUrl || '')
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<Lead | null>(null)
   const [, startTrans] = useTransition()
@@ -106,10 +111,14 @@ export function AppShell({
   const toast = useToast()
 
   const nowMeta = VIEW_TITLES[view]
-  const MONTH_NAME = new Date().toLocaleString('pt-BR', { month: 'long', year: 'numeric' })
-  const sub = nowMeta.sub === 'Visão geral do mês' ? MONTH_NAME.charAt(0).toUpperCase() + MONTH_NAME.slice(1) : nowMeta.sub
+  const TODAY_LABEL = useMemo(() => {
+    const s = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+    return s.charAt(0).toUpperCase() + s.slice(1)
+  }, [])
+  const sub = nowMeta.sub === 'Visão geral do mês' ? TODAY_LABEL : nowMeta.sub
 
-  const firstName = (userName || '').trim().split(' ')[0]
+  const effectiveName = (displayName || userName || '').trim()
+  const firstName = effectiveName.split(' ')[0]
   const greeting = useMemo(() => {
     const h = new Date().getHours()
     const saudacao = h >= 5 && h < 12 ? 'Bom dia' : h >= 12 && h < 18 ? 'Boa tarde' : 'Boa noite'
@@ -180,6 +189,19 @@ export function AppShell({
     setGoalState(g)
     try { await upsertSettings(g, tsiUpdatedAt) } catch {}
   }, [tsiUpdatedAt])
+
+  // ─── Profile handler (nome + foto) ─────────────────────────────────────────
+
+  const handleProfileChange = useCallback(async (name: string, avatar: string) => {
+    setDisplayName(name)
+    setAvatarUrl(avatar)
+    try {
+      await updateProfile(name || null, avatar || null)
+      toast('Perfil atualizado com sucesso.')
+    } catch {
+      toast('Erro ao salvar perfil.', true)
+    }
+  }, [toast])
 
   // ─── TSI import (CORRIGIDO — colunas reais da planilha Salesforce) ────────────
 
@@ -410,11 +432,13 @@ export function AppShell({
       <Sidebar
         view={view}
         onView={(v) => setView(v as View)}
-        userName={userName}
+        userName={effectiveName || userName}
         userEmail={userEmail}
+        avatarUrl={avatarUrl}
         onSignOut={handleSignOut}
         goal={goal}
         onGoalChange={handleGoalChange}
+        onProfileChange={handleProfileChange}
       />
 
       <div className="flex-1 min-w-0 flex flex-col">

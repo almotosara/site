@@ -139,7 +139,7 @@ export async function getSettings() {
     .select('*')
     .eq('user_id', USER_ID)
     .maybeSingle()
-  return data ?? { goal: 150, tsi_updated_at: null }
+  return data ?? { goal: 150, tsi_updated_at: null, display_name: null, avatar_url: null }
 }
 
 export async function upsertSettings(goal: number, tsi_updated_at?: string | null) {
@@ -147,6 +147,17 @@ export async function upsertSettings(goal: number, tsi_updated_at?: string | nul
   const { error } = await supabase
     .from('user_settings')
     .upsert({ user_id: USER_ID, goal, tsi_updated_at: tsi_updated_at ?? null })
+  if (error) throw error
+  revalidatePath('/')
+}
+
+// ─── PERFIL (nome de exibição + foto) ─────────────────────────────────────────
+
+export async function updateProfile(display_name: string | null, avatar_url: string | null) {
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('user_settings')
+    .upsert({ user_id: USER_ID, display_name, avatar_url })
   if (error) throw error
   revalidatePath('/')
 }

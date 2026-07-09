@@ -13,9 +13,11 @@ interface SidebarProps {
   onView: (v: View) => void
   userName: string
   userEmail: string
+  avatarUrl?: string
   onSignOut: () => void
   goal: number
   onGoalChange: (g: number) => void
+  onProfileChange: (name: string, avatar: string) => void
 }
 
 interface NavItemDef {
@@ -51,11 +53,13 @@ const NAV_ITEMS: NavItemDef[] = [
   },
 ]
 
-export function Sidebar({ view, onView, userName, userEmail, onSignOut, goal, onGoalChange }: SidebarProps) {
+export function Sidebar({ view, onView, userName, userEmail, avatarUrl, onSignOut, goal, onGoalChange, onProfileChange }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false)
   const [accountOpen, setAccountOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [avatarHover, setAvatarHover] = useState(false)
   const { theme, toggle } = useTheme()
+  const avatarExpanded = !collapsed && (avatarHover || accountOpen)
 
   // Estado de abertura dos grupos
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
@@ -314,33 +318,43 @@ export function Sidebar({ view, onView, userName, userEmail, onSignOut, goal, on
         </button>
 
         {/* Account Menu */}
-        <div className="relative">
+        <div
+          className="relative"
+          onMouseEnter={() => setAvatarHover(true)}
+          onMouseLeave={() => setAvatarHover(false)}
+        >
           <button
             className="account-trigger"
             onClick={() => setAccountOpen(!accountOpen)}
-            style={{ justifyContent: collapsed ? 'center' : 'flex-start', gap: collapsed ? 0 : 10, padding: collapsed ? '10px' : '10px 12px' }}
+            style={{
+              justifyContent: collapsed || !avatarExpanded ? 'center' : 'flex-start',
+              gap: collapsed || !avatarExpanded ? 0 : 10,
+              padding: collapsed ? '10px' : avatarExpanded ? '10px 12px' : '7px',
+              width: collapsed ? '100%' : avatarExpanded ? '100%' : 'fit-content',
+              margin: collapsed || avatarExpanded ? 0 : '0 auto',
+            }}
           >
-            <div className="account-avatar">
-              {userName.charAt(0).toUpperCase()}
+            <div className="account-avatar" style={avatarUrl ? { backgroundImage: `url(${avatarUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}>
+              {!avatarUrl && userName.charAt(0).toUpperCase()}
             </div>
-            {!collapsed && (
-              <div className="flex-1 min-w-0 text-left">
-                <div className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{userName}</div>
-                <div className="text-[11px] truncate" style={{ color: 'var(--text-muted)' }}>{userEmail}</div>
-              </div>
-            )}
-            {!collapsed && (
-              <svg
-                width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                style={{
-                  color: 'var(--text-muted)',
-                  transform: accountOpen ? 'rotate(180deg)' : 'none',
-                  transition: 'transform 0.2s',
-                  flexShrink: 0,
-                }}
-              >
-                <path d="M6 9l6 6 6-6"/>
-              </svg>
+            {!collapsed && avatarExpanded && (
+              <>
+                <div className="flex-1 min-w-0 text-left">
+                  <div className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{userName}</div>
+                  <div className="text-[11px] truncate" style={{ color: 'var(--text-muted)' }}>{userEmail}</div>
+                </div>
+                <svg
+                  width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                  style={{
+                    color: 'var(--text-muted)',
+                    transform: accountOpen ? 'rotate(180deg)' : 'none',
+                    transition: 'transform 0.2s',
+                    flexShrink: 0,
+                  }}
+                >
+                  <path d="M6 9l6 6 6-6"/>
+                </svg>
+              </>
             )}
           </button>
 
@@ -351,8 +365,14 @@ export function Sidebar({ view, onView, userName, userEmail, onSignOut, goal, on
               <div className="account-menu-popup modal-anim">
                 {/* User info header */}
                 <div className="flex items-center gap-3 px-3 py-3">
-                  <div className="account-avatar" style={{ width: 38, height: 38, fontSize: 16 }}>
-                    {userName.charAt(0).toUpperCase()}
+                  <div
+                    className="account-avatar"
+                    style={{
+                      width: 38, height: 38, fontSize: 16,
+                      ...(avatarUrl ? { backgroundImage: `url(${avatarUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}),
+                    }}
+                  >
+                    {!avatarUrl && userName.charAt(0).toUpperCase()}
                   </div>
                   <div className="min-w-0">
                     <div className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{userName}</div>
@@ -396,8 +416,10 @@ export function Sidebar({ view, onView, userName, userEmail, onSignOut, goal, on
         onClose={() => setSettingsOpen(false)}
         userName={userName}
         userEmail={userEmail}
+        avatarUrl={avatarUrl}
         goal={goal}
         onGoalChange={onGoalChange}
+        onProfileChange={onProfileChange}
         onSignOut={onSignOut}
       />
     </aside>

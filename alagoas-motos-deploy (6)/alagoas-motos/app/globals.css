@@ -315,14 +315,15 @@ body {
   gap: 10px;
   width: 100%;
   padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid var(--border-line-soft);
-  background: var(--bg-panel-2);
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: transparent;
   color: var(--text-primary);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: width 0.22s ease, padding 0.22s ease, background-color 0.18s, border-color 0.18s, margin 0.22s ease;
   font-family: var(--font-sans);
   font-size: 13px;
+  overflow: hidden;
 }
 
 .account-trigger:hover {
@@ -333,7 +334,7 @@ body {
 .account-avatar {
   width: 34px;
   height: 34px;
-  border-radius: 10px;
+  border-radius: 50%;
   background: linear-gradient(135deg, #ff4b2b, #d63a1e);
   display: flex;
   align-items: center;
