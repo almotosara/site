@@ -35,7 +35,7 @@ export function DashView({ leads, goal, onGoalChange, onView, onNewLead }: DashV
 
   const convertidos = byStatus['Convertido'] || 0
   const perdidos = byStatus['Perdido'] || 0
-  const pct = goal > 0 ? Math.min(100, (total / goal) * 100) : 0
+  const pct = goal > 0 ? Math.min(100, (convertidos / goal) * 100) : 0
 
   const MONTH_NAME = now.toLocaleString('pt-BR', { month: 'long', year: 'numeric' })
   const recent = leads.slice(0, 8)
@@ -116,9 +116,9 @@ export function DashView({ leads, goal, onGoalChange, onView, onNewLead }: DashV
                 style={{ transition: 'stroke-dasharray 0.6s cubic-bezier(.4,0,.2,1)' }} />
             </svg>
             <div style={{ fontFamily: 'Rajdhani, sans-serif', fontSize: 40, fontWeight: 700, marginTop: -34, color: gColor, lineHeight: 1 }}>
-              {total}
+              {convertidos}
             </div>
-            <div className="text-[11.5px] uppercase tracking-widest mt-1" style={{ color: 'var(--text-muted)' }}>de {goal} leads</div>
+            <div className="text-[11.5px] uppercase tracking-widest mt-1" style={{ color: 'var(--text-muted)' }}>de {goal} convertidos</div>
             <div className="flex items-center gap-1.5 mt-3 text-xs" style={{ color: 'var(--text-muted)' }}>
               <span>Meta:</span>
               <input

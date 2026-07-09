@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition, useRef, useCallback } from 'react'
+import { useState, useTransition, useRef, useCallback, useMemo } from 'react'
 import type { Lead, TsiRow, ClienteFiel, LeadOrigem, LeadStatus } from '@/lib/types'
 import { TSI_STORE_MAP } from '@/lib/constants'
 import { Sidebar } from './sidebar'
@@ -108,6 +108,14 @@ export function AppShell({
   const nowMeta = VIEW_TITLES[view]
   const MONTH_NAME = new Date().toLocaleString('pt-BR', { month: 'long', year: 'numeric' })
   const sub = nowMeta.sub === 'Visão geral do mês' ? MONTH_NAME.charAt(0).toUpperCase() + MONTH_NAME.slice(1) : nowMeta.sub
+
+  const firstName = (userName || '').trim().split(' ')[0]
+  const greeting = useMemo(() => {
+    const h = new Date().getHours()
+    const saudacao = h >= 5 && h < 12 ? 'Bom dia' : h >= 12 && h < 18 ? 'Boa tarde' : 'Boa noite'
+    return firstName ? `${saudacao}, ${firstName}!` : `${saudacao}!`
+  }, [firstName])
+  const title = view === 'dash' ? greeting : nowMeta.title
 
   // ─── Lead handlers ───────────────────────────────────────────────────────────
 
@@ -405,6 +413,8 @@ export function AppShell({
         userName={userName}
         userEmail={userEmail}
         onSignOut={handleSignOut}
+        goal={goal}
+        onGoalChange={handleGoalChange}
       />
 
       <div className="flex-1 min-w-0 flex flex-col">
@@ -429,7 +439,7 @@ export function AppShell({
                 letterSpacing: 0.3,
               }}
             >
-              {nowMeta.title}
+              {title}
             </h1>
             <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{sub}</p>
           </div>

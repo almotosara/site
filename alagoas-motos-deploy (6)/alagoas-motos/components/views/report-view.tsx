@@ -98,7 +98,9 @@ export function ReportView({ leads }: ReportViewProps) {
                 return (
                   <div key={d} className="flex flex-col items-center gap-1 min-w-[28px]" title={`${day}/${m}: ${v} leads`}>
                     <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{v}</span>
-                    <div className="w-5 rounded-t-sm transition-all" style={{ height: `${h}%`, minHeight: 4, background: '#ff4b2b', opacity: 0.85 }} />
+                    <div className="w-full flex items-end justify-center" style={{ height: 110 }}>
+                      <div className="w-5 rounded-t-sm transition-all" style={{ height: `${h}%`, minHeight: 4, background: '#ff4b2b', opacity: 0.85 }} />
+                    </div>
                     <span className="text-[9px] whitespace-nowrap" style={{ color: 'var(--text-muted)' }}>{day}/{m}</span>
                   </div>
                 )
