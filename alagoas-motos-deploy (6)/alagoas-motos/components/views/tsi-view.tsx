@@ -26,16 +26,16 @@ export function TsiView({ tsiData, tsiUpdatedAt, onImport }: TsiViewProps) {
     tsiData.forEach((r) => {
       const loja = r.loja || 'Desconhecido'
       const cilindrada = r.cilindrada || 'Não Informado'
-      const t2b = r.t2b != null ? Number(r.t2b) : NaN
-      const tsi = r.tsi != null ? Number(r.tsi) : NaN
+      const t2b = Number(r.t2b ?? 0)
+      const tsi = Number(r.tsi ?? 0)
 
-      if (!isNaN(t2b)) { sumT2B += t2b; cntT2B++ }
-      if (!isNaN(tsi)) { sumTsi += tsi; cntTsi++ }
-      if (!isNaN(t2b) && t2b < 100) alertas.push(r)
+      sumT2B += t2b; cntT2B++
+      sumTsi += tsi; cntTsi++
+      if (t2b < 100) alertas.push(r)
 
       if (!lojas[loja]) lojas[loja] = { t2bSum: 0, t2bCount: 0, osCount: 0 }
       lojas[loja].osCount++
-      if (!isNaN(t2b)) { lojas[loja].t2bSum += t2b; lojas[loja].t2bCount++ }
+      lojas[loja].t2bSum += t2b; lojas[loja].t2bCount++
 
       if (!matriz[loja]) {
         matriz[loja] = {}
@@ -43,7 +43,7 @@ export function TsiView({ tsiData, tsiUpdatedAt, onImport }: TsiViewProps) {
       }
       if (matriz[loja][cilindrada]) {
         matriz[loja][cilindrada].osCount++
-        if (!isNaN(t2b)) { matriz[loja][cilindrada].t2bSum += t2b; matriz[loja][cilindrada].t2bCount++ }
+        matriz[loja][cilindrada].t2bSum += t2b; matriz[loja][cilindrada].t2bCount++
       }
 
       if (r.comentario && r.comentario !== 'NaN') feedbacks.push(r)
@@ -219,9 +219,9 @@ export function TsiView({ tsiData, tsiUpdatedAt, onImport }: TsiViewProps) {
                       <span>OS: {a.os}</span><span>{a.loja}</span>
                     </div>
                     <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                      Top2Box: <span style={{ color: COLORS[tsiColor(Number(a.t2b) || 0)], fontWeight: 800 }}>{a.t2b}</span>
+                      Top2Box: <span style={{ color: COLORS[tsiColor(Number(a.t2b ?? 0))], fontWeight: 800 }}>{Number(a.t2b ?? 0)}</span>
                       {'  |  '}
-                      TSI: <span style={{ fontWeight: 700, color: 'var(--text-dim)' }}>{a.tsi == null || isNaN(Number(a.tsi)) ? '-' : a.tsi}</span>
+                      TSI: <span style={{ fontWeight: 700, color: 'var(--text-dim)' }}>{Number(a.tsi ?? 0)}</span>
                     </div>
                   </div>
                 ))}

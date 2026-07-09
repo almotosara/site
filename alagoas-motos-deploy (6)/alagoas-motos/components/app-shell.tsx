@@ -44,10 +44,10 @@ function getCol(row: Record<string, unknown>, ...candidates: string[]): string {
   return ''
 }
 
-// ─── Utility: numOrNull — parseFloat que NÃO transforma 0 em null ───
-function numOrNull(v: string): number | null {
+// ─── Utility: numOrZero — parseFloat que trata vazio/NaN como 0 (não existe "nulo" nessas pesquisas) ───
+function numOrZero(v: string): number {
   const n = parseFloat(v)
-  return Number.isNaN(n) ? null : n
+  return Number.isNaN(n) ? 0 : n
 }
 
 // ─── Utility: titleCase (igual ao HTML de referência) ───
@@ -206,8 +206,8 @@ export function AppShell({
         return {
           os: osKey,
           loja: (TSI_STORE_MAP as Record<string, string>)[rawLoja] || rawLoja,
-          t2b: numOrNull(getCol(r, 'Nota Top2Box')),
-          tsi: numOrNull(getCol(r, 'Nota Pesquisa TSI')),
+          t2b: numOrZero(getCol(r, 'Nota Top2Box')),
+          tsi: numOrZero(getCol(r, 'Nota Pesquisa TSI')),
           cilindrada: getCol(r, 'Categoria Produto') || 'Não Informado',
           tipo: getCol(r, 'Tipo conclusão final'),
           comentario: getCol(r, 'Comentário conclusão final'),

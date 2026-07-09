@@ -31,10 +31,10 @@ export function TsiListView({ tsiData, onImport }: TsiListViewProps) {
     if (text && !r.os.toLowerCase().includes(text) && !lojaNome.toLowerCase().includes(text) && !r.comentario?.toLowerCase().includes(text)) return false
     if (lojaFilter && lojaNome !== lojaFilter) return false
     if (faixa) {
-      const t2b = r.t2b != null ? Number(r.t2b) : null
-      if (faixa === 'verde' && (t2b == null || t2b < 93.5)) return false
-      if (faixa === 'amarelo' && (t2b == null || t2b >= 93.5 || t2b < 92)) return false
-      if (faixa === 'vermelho' && (t2b == null || t2b >= 92)) return false
+      const t2b = Number(r.t2b ?? 0)
+      if (faixa === 'verde' && t2b < 93.5) return false
+      if (faixa === 'amarelo' && (t2b >= 93.5 || t2b < 92)) return false
+      if (faixa === 'vermelho' && t2b >= 92) return false
     }
     return true
   }), [tsiData, q, lojaFilter, faixa])
@@ -99,9 +99,10 @@ export function TsiListView({ tsiData, onImport }: TsiListViewProps) {
               <tbody>
                 {filtered.map((r) => {
                   const lojaNome = TSI_STORE_MAP[r.loja || ''] || r.loja || 'Outros'
-                  const t2b = r.t2b != null ? Number(r.t2b) : null
-                  const tc = t2b != null ? tsiColor(t2b) : null
-                  const tColor = tc ? colors[tc as keyof typeof colors] : '#868c94'
+                  const t2b = Number(r.t2b ?? 0)
+                  const tsi = Number(r.tsi ?? 0)
+                  const tc = tsiColor(t2b)
+                  const tColor = colors[tc as keyof typeof colors]
                   return (
                     <tr key={r.id} className="transition-colors last:border-0"
                       style={{ borderBottom: '1px solid var(--border-line-soft)' }}
@@ -110,14 +111,12 @@ export function TsiListView({ tsiData, onImport }: TsiListViewProps) {
                       <td className="px-3.5 py-2.5 font-semibold whitespace-nowrap" style={{ color: 'var(--text-primary)' }}>{lojaNome}</td>
                       <td className="px-3.5 py-2.5 font-mono text-xs" style={{ color: 'var(--text-dim)' }}>{r.os}</td>
                       <td className="px-3.5 py-2.5">
-                        {t2b != null ? (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold"
-                            style={{ background: tColor + '26', color: tColor }}>
-                            {t2b.toFixed(1)}%
-                          </span>
-                        ) : '—'}
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold"
+                          style={{ background: tColor + '26', color: tColor }}>
+                          {t2b.toFixed(1)}%
+                        </span>
                       </td>
-                      <td className="px-3.5 py-2.5" style={{ color: 'var(--text-dim)' }}>{r.tsi != null ? Number(r.tsi).toFixed(2) : '—'}</td>
+                      <td className="px-3.5 py-2.5" style={{ color: 'var(--text-dim)' }}>{tsi.toFixed(2)}</td>
                       <td className="px-3.5 py-2.5 whitespace-nowrap" style={{ color: 'var(--text-dim)' }}>{r.data || '—'}</td>
                       <td className="px-3.5 py-2.5 max-w-[200px] truncate" style={{ color: 'var(--text-muted)' }}>{r.comentario || '—'}</td>
                     </tr>
