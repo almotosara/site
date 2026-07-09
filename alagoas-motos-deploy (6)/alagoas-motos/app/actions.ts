@@ -32,12 +32,14 @@ export async function bulkCreateLeads(
   leads: Omit<Lead, 'id' | 'user_id' | 'criado_em' | 'atualizado_em'>[]
 ) {
   const supabase = await createClient()
-  if (leads.length === 0) return
-  const { error } = await supabase
+  if (leads.length === 0) return []
+  const { data, error } = await supabase
     .from('leads')
     .insert(leads.map((l) => ({ ...l, user_id: USER_ID })))
+    .select()
   if (error) throw error
   revalidatePath('/')
+  return data as Lead[]
 }
 
 export async function updateLead(
