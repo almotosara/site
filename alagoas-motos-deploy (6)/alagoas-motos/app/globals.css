@@ -123,6 +123,17 @@ body {
   transition: background-color 0.3s, color 0.3s;
 }
 
+/* Desliga todas as transições/animações por um instante durante a troca de
+   tema, pra evitar que dezenas de propriedades (sombras, gradientes, opacidade)
+   animem ao mesmo tempo e travem a tela. Reativado no próximo frame. */
+.theme-switching,
+.theme-switching *,
+.theme-switching *::before,
+.theme-switching *::after {
+  transition: none !important;
+  animation: none !important;
+}
+
 ::selection {
   background: var(--selection-bg);
   color: var(--selection-text);
