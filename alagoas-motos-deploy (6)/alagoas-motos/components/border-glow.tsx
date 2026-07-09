@@ -158,7 +158,7 @@ export default function BorderGlow({
       onPointerMove={handlePointerMove}
       className={`${styles['border-glow-card']} ${className}`}
       style={{
-        '--card-bg': backgroundColor ?? 'var(--card-bg, #120F17)',
+        ...(backgroundColor ? { '--card-bg': backgroundColor } : {}),
         '--edge-sensitivity': edgeSensitivity,
         '--border-radius': `${borderRadius}px`,
         '--glow-padding': `${glowRadius}px`,
