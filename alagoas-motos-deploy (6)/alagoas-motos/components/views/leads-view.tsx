@@ -1,12 +1,13 @@
 'use client'
 
 import { useState, useMemo, useCallback, useRef } from 'react'
-import type { Lead } from '@/lib/types'
+import type { Lead, ClienteFiel } from '@/lib/types'
 import { STATUS_COLORS, ORIGEM_COLORS, fmtDate, STATUS_OPTIONS } from '@/lib/constants'
 import { useToast } from '@/components/toast'
 
 interface LeadsViewProps {
   leads: Lead[]
+  fieis: ClienteFiel[]
   onEdit: (l: Lead) => void
   onDelete: (id: string) => void
   onConvert: (id: string) => void
@@ -38,7 +39,18 @@ function isCNPJ(doc?: string | null) {
   return doc.replace(/\D/g, '').length === 14
 }
 
-export function LeadsView({ leads, onEdit, onDelete, onConvert, onNew }: LeadsViewProps) {
+// ─── Matching de Cliente Fiel ─────────────────────────────────────────────────
+// Compara pelo telefone (só dígitos, últimos 8+) ou pelo nome normalizado,
+// já que não existe um vínculo direto (ID) entre lead e cliente fiel.
+function normPhone(v?: string | null): string {
+  const d = (v || '').replace(/\D/g, '')
+  return d.length >= 8 ? d.slice(-8) : ''
+}
+function normName(v?: string | null): string {
+  return (v || '').trim().toLowerCase()
+}
+
+export function LeadsView({ leads, fieis, onEdit, onDelete, onConvert, onNew }: LeadsViewProps) {
   const [q, setQ] = useState('')
   const [origem, setOrigem] = useState('')
   const [status, setStatus] = useState('')
@@ -46,11 +58,34 @@ export function LeadsView({ leads, onEdit, onDelete, onConvert, onNew }: LeadsVi
   const [ate, setAte] = useState('')
   const [modelo, setModelo] = useState('')
   const [hideCnpj, setHideCnpj] = useState(false)
+  const [onlyFieis, setOnlyFieis] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const [copiedBtn, setCopiedBtn] = useState<string | null>(null)
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
   const toast = useToast()
+
+  const { fielPhones, fielNames } = useMemo(() => {
+    const phones = new Set<string>()
+    const names = new Set<string>()
+    fieis.forEach((f) => {
+      const p = normPhone(f.whatsapp)
+      if (p) phones.add(p)
+      const n = normName(f.nome)
+      if (n) names.add(n)
+    })
+    return { fielPhones: phones, fielNames: names }
+  }, [fieis])
+
+  const isLeadFiel = useCallback((l: Lead) => {
+    const p = normPhone(l.telefone)
+    if (p && fielPhones.has(p)) return true
+    const n = normName(l.nome)
+    if (n && fielNames.has(n)) return true
+    return false
+  }, [fielPhones, fielNames])
+
+  const fieisCount = useMemo(() => leads.filter(isLeadFiel).length, [leads, isLeadFiel])
 
   const modelos = useMemo(() => {
     const set = new Set<string>()
@@ -96,13 +131,14 @@ export function LeadsView({ leads, onEdit, onDelete, onConvert, onNew }: LeadsVi
     if (status && l.status !== status) return false
     if (modelo && l.modelo !== modelo) return false
     if (hideCnpj && isCNPJ(l.cpf)) return false
+    if (onlyFieis && !isLeadFiel(l)) return false
     if (de && l.data && l.data < de) return false
     if (ate && l.data && l.data > ate) return false
     return true
-  }), [leads, q, origem, status, de, ate, modelo, hideCnpj])
+  }), [leads, q, origem, status, de, ate, modelo, hideCnpj, onlyFieis, isLeadFiel])
 
   // Reset para a primeira página sempre que os filtros mudarem
-  const filterKey = `${q}|${origem}|${status}|${de}|${ate}|${modelo}|${hideCnpj}`
+  const filterKey = `${q}|${origem}|${status}|${de}|${ate}|${modelo}|${hideCnpj}|${onlyFieis}`
   const prevFilterKey = useRef(filterKey)
   if (prevFilterKey.current !== filterKey) {
     prevFilterKey.current = filterKey
@@ -158,6 +194,25 @@ export function LeadsView({ leads, onEdit, onDelete, onConvert, onNew }: LeadsVi
           </svg>
           Ocultar CNPJ{cnpjCount > 0 ? ` (${cnpjCount})` : ''}
         </button>
+        {fieisCount > 0 && (
+          <button
+            onClick={() => setOnlyFieis((v) => !v)}
+            title={onlyFieis ? 'Mostrar todos os leads' : 'Mostrar apenas leads que são clientes fiéis'}
+            className="flex items-center gap-1.5 cursor-pointer"
+            style={{
+              ...INP_STYLE,
+              fontWeight: 600,
+              color: onlyFieis ? '#ff4b2b' : 'var(--text-dim)',
+              borderColor: onlyFieis ? '#ff4b2b' : 'var(--border-line)',
+              background: onlyFieis ? '#ff4b2b18' : 'var(--bg-input)',
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill={onlyFieis ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+            </svg>
+            Clientes fiéis ({fieisCount})
+          </button>
+        )}
         <div className="flex items-center gap-1.5">
           <input type="date" value={de} onChange={(e) => setDe(e.target.value)} style={INP_STYLE} title="De" />
           <span className="text-xs" style={{ color: 'var(--text-muted)' }}>até</span>
@@ -198,7 +253,14 @@ export function LeadsView({ leads, onEdit, onDelete, onConvert, onNew }: LeadsVi
                       onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}>
                       {/* Cliente · Copiar */}
                       <td className="px-3.5 py-3" style={{ maxWidth: 280 }}>
-                        <b className="block font-semibold" style={{ color: 'var(--text-primary)' }}>{l.nome}</b>
+                        <div className="flex items-center gap-1.5">
+                          <b className="block font-semibold" style={{ color: 'var(--text-primary)' }}>{l.nome}</b>
+                          {isLeadFiel(l) && (
+                            <span title="Cliente fiel" style={{ color: '#ff4b2b', flexShrink: 0 }}>
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                            </span>
+                          )}
+                        </div>
                         {l.telefone && (
                           <span
                             className="text-[11.5px] cursor-pointer hover:underline"

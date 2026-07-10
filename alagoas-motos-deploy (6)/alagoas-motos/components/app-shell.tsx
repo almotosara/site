@@ -518,7 +518,7 @@ export function AppShell({
               onNewLead={() => { setEditing(null); setModalOpen(true) }} />
           )}
           {view === 'leads' && (
-            <LeadsView leads={leads}
+            <LeadsView leads={leads} fieis={fieis}
               onEdit={(l) => { setEditing(l); setModalOpen(true) }}
               onDelete={handleDeleteLead}
               onConvert={handleConvertLead}

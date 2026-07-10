@@ -47,7 +47,7 @@ export function ReportView({ leads }: ReportViewProps) {
 
   const byDay = useMemo(() => {
     const m: Record<string, number> = {}
-    filtered.forEach((l) => { if (l.data) m[l.data] = (m[l.data] || 0) + 1 })
+    filtered.forEach((l) => { if (l.data && l.status === 'Convertido') m[l.data] = (m[l.data] || 0) + 1 })
     return Object.entries(m).sort(([a], [b]) => a.localeCompare(b))
   }, [filtered])
 
@@ -85,21 +85,21 @@ export function ReportView({ leads }: ReportViewProps) {
       <div className="grid gap-4" style={{ gridTemplateColumns: '2fr 1fr' }}>
         {/* By day bar chart */}
         <div className="rounded-2xl p-5" style={{ background: 'var(--card-bg)', border: '1px solid var(--border-line-soft)' }}>
-          <h3 style={{ fontFamily: 'Rajdhani, sans-serif', fontSize: 18, fontWeight: 700, margin: '0 0 16px 0', borderLeft: '3px solid #ff4b2b', paddingLeft: 10, color: 'var(--text-primary)' }}>
-            Leads por dia
+          <h3 style={{ fontFamily: 'Rajdhani, sans-serif', fontSize: 18, fontWeight: 700, margin: '0 0 16px 0', borderLeft: '3px solid #2fd675', paddingLeft: 10, color: 'var(--text-primary)' }}>
+            Convertidos por dia
           </h3>
           {byDay.length === 0 ? (
-            <p className="text-sm text-center py-8" style={{ color: 'var(--text-muted)' }}>Sem dados no período</p>
+            <p className="text-sm text-center py-8" style={{ color: 'var(--text-muted)' }}>Nenhum lead convertido no período</p>
           ) : (
             <div className="flex items-end gap-1 h-40 overflow-x-auto pb-2">
               {byDay.map(([d, v]) => {
                 const h = (v / maxDay) * 100
                 const [, m, day] = d.split('-')
                 return (
-                  <div key={d} className="flex flex-col items-center gap-1 min-w-[28px]" title={`${day}/${m}: ${v} leads`}>
+                  <div key={d} className="flex flex-col items-center gap-1 min-w-[28px]" title={`${day}/${m}: ${v} convertido(s)`}>
                     <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{v}</span>
                     <div className="w-full flex items-end justify-center" style={{ height: 110 }}>
-                      <div className="w-5 rounded-t-sm transition-all" style={{ height: `${h}%`, minHeight: 4, background: '#ff4b2b', opacity: 0.85 }} />
+                      <div className="w-5 rounded-t-sm transition-all" style={{ height: `${h}%`, minHeight: 4, background: '#2fd675', opacity: 0.85 }} />
                     </div>
                     <span className="text-[9px] whitespace-nowrap" style={{ color: 'var(--text-muted)' }}>{day}/{m}</span>
                   </div>
